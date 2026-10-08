@@ -1,10 +1,14 @@
 PRAGMA foreign_keys=ON;
 CREATE TABLE IF NOT EXISTS software(id TEXT PRIMARY KEY,name TEXT NOT NULL,developer TEXT,family_id TEXT,description TEXT);
-CREATE TABLE IF NOT EXISTS platforms(id TEXT PRIMARY KEY,os_family TEXT NOT NULL,os_version TEXT,cpu_arch TEXT,abi TEXT);
+CREATE TABLE IF NOT EXISTS platforms(id TEXT PRIMARY KEY,os_family TEXT NOT NULL,os_version TEXT,cpu_arch TEXT,abi TEXT,memory_min_mb INTEGER,runtimes_json TEXT);
 CREATE TABLE IF NOT EXISTS devices(id TEXT PRIMARY KEY,vendor TEXT NOT NULL,model TEXT NOT NULL,platform_id TEXT,memory_mb INTEGER,metadata_json TEXT,FOREIGN KEY(platform_id) REFERENCES platforms(id));
 CREATE TABLE IF NOT EXISTS releases(id TEXT PRIMARY KEY,software_id TEXT NOT NULL,version TEXT NOT NULL,release_date TEXT,status TEXT DEFAULT 'stable',FOREIGN KEY(software_id) REFERENCES software(id));
-CREATE TABLE IF NOT EXISTS packages(id TEXT PRIMARY KEY,release_id TEXT NOT NULL,format TEXT NOT NULL,architecture TEXT,sha256 TEXT,provenance TEXT,redistribution TEXT,source_url TEXT,FOREIGN KEY(release_id) REFERENCES releases(id));
+CREATE TABLE IF NOT EXISTS packages(id TEXT PRIMARY KEY,release_id TEXT NOT NULL,format TEXT NOT NULL,architecture TEXT,sha256 TEXT,provenance TEXT,redistribution TEXT,source_url TEXT,min_os_version TEXT,max_os_version TEXT,abi TEXT,min_ram_mb INTEGER,runtime TEXT,compatibility_layer TEXT,emulator TEXT,FOREIGN KEY(release_id) REFERENCES releases(id));
+CREATE TABLE IF NOT EXISTS dependencies(id INTEGER PRIMARY KEY AUTOINCREMENT,package_id TEXT NOT NULL,depends_on_package_id TEXT,software_id TEXT,version_constraint TEXT,kind TEXT DEFAULT 'runtime',optional INTEGER DEFAULT 0,FOREIGN KEY(package_id) REFERENCES packages(id),FOREIGN KEY(depends_on_package_id) REFERENCES packages(id),FOREIGN KEY(software_id) REFERENCES software(id));
+CREATE TABLE IF NOT EXISTS compatibility_tools(id TEXT PRIMARY KEY,name TEXT NOT NULL,kind TEXT NOT NULL,source_url TEXT,description TEXT);
 CREATE TABLE IF NOT EXISTS compatibility(id INTEGER PRIMARY KEY AUTOINCREMENT,package_id TEXT NOT NULL,device_id TEXT,platform_id TEXT,level TEXT NOT NULL,score INTEGER NOT NULL,reason TEXT,FOREIGN KEY(package_id) REFERENCES packages(id),FOREIGN KEY(device_id) REFERENCES devices(id),FOREIGN KEY(platform_id) REFERENCES platforms(id));
 CREATE INDEX IF NOT EXISTS idx_release_software ON releases(software_id);
 CREATE INDEX IF NOT EXISTS idx_package_release ON packages(release_id);
 CREATE INDEX IF NOT EXISTS idx_compat_device ON compatibility(device_id);
+CREATE INDEX IF NOT EXISTS idx_dependencies_package ON dependencies(package_id);
+CREATE INDEX IF NOT EXISTS idx_dependencies_software ON dependencies(software_id);
